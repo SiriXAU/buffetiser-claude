@@ -168,6 +168,9 @@ class AustralianCGTCalculator:
 
         Returns:
             List of TaxParcelAllocation objects
+
+        Raises:
+            ValueError: If insufficient parcels are available to cover the sale
         """
         allocations = []
 
@@ -209,6 +212,15 @@ class AustralianCGTCalculator:
                 allocation = await self._create_allocation(sale, parcel, units_to_sell)
                 allocations.append(allocation)
                 units_remaining -= units_to_sell
+
+        # Validate that all units were allocated
+        total_allocated = sum(a.units_sold for a in allocations)
+        if abs(total_allocated - sale.units) > 0.0001:  # Allow for floating point precision
+            raise ValueError(
+                f"Insufficient parcels to cover sale. "
+                f"Sale requires {sale.units} units but only {total_allocated} units available. "
+                f"You need to purchase {sale.units - total_allocated} more units before selling."
+            )
 
         return allocations
 

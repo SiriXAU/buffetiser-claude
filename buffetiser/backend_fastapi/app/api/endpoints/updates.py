@@ -4,7 +4,7 @@ Update endpoints for price scraping and data refresh.
 from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.services.scraper_service import PriceScraperService
 
 router = APIRouter()
@@ -13,17 +13,25 @@ router = APIRouter()
 @router.post("/prices/all")
 async def update_all_prices(
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db)
 ):
     """
     Update prices and history for all investments.
 
     This runs in the background to avoid blocking.
+    Background task creates its own database session to avoid using
+    the request-scoped session that gets closed when the request completes.
     """
     async def update_task():
-        service = PriceScraperService(db)
-        result = await service.update_all_investments()
-        print(f"Price update complete: {result}")
+        async with AsyncSessionLocal() as db:
+            try:
+                service = PriceScraperService(db)
+                result = await service.update_all_investments()
+                await db.commit()
+                print(f"Price update complete: {result}")
+            except Exception as e:
+                await db.rollback()
+                print(f"Price update failed: {e}")
+                raise
 
     background_tasks.add_task(update_task)
 
@@ -36,17 +44,25 @@ async def update_all_prices(
 @router.post("/prices/daily")
 async def update_daily_changes(
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db)
 ):
     """
     Update only daily price changes (lighter operation).
 
     This runs in the background.
+    Background task creates its own database session to avoid using
+    the request-scoped session that gets closed when the request completes.
     """
     async def update_task():
-        service = PriceScraperService(db)
-        result = await service.update_daily_changes_only()
-        print(f"Daily changes update complete: {result}")
+        async with AsyncSessionLocal() as db:
+            try:
+                service = PriceScraperService(db)
+                result = await service.update_daily_changes_only()
+                await db.commit()
+                print(f"Daily changes update complete: {result}")
+            except Exception as e:
+                await db.rollback()
+                print(f"Daily changes update failed: {e}")
+                raise
 
     background_tasks.add_task(update_task)
 

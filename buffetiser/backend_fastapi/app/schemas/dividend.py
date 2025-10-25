@@ -32,7 +32,7 @@ class DividendPaymentResponse(BaseModel):
 class DividendReinvestmentBase(BaseModel):
     """Base dividend reinvestment schema."""
     symbol: str = Field(..., description="Investment symbol")
-    units: int = Field(..., gt=0, description="Units acquired through reinvestment")
+    units: float = Field(..., gt=0, description="Units acquired through reinvestment (fractional allowed)")
     price_per_unit: float = Field(..., gt=0, description="Price per unit")
     date: date = Field(..., description="Reinvestment date")
 
@@ -46,7 +46,7 @@ class DividendReinvestmentResponse(BaseModel):
     """Schema for dividend reinvestment response."""
     id: int
     investment_id: int
-    units: int
+    units: float
     price_per_unit: float
     date: date
     created_at: datetime

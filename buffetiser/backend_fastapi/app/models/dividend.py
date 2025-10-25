@@ -73,7 +73,7 @@ class DividendReinvestment(Base):
 
     # Reinvestment details
     date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    units: Mapped[int] = mapped_column(Integer, default=0)
+    units: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     price_per_unit: Mapped[float] = mapped_column(Float, nullable=False)
 
     # Timestamps

@@ -76,8 +76,9 @@ class PortfolioService:
             as_of_date = date.today()
 
         total_cost = 0.0
+        total_units_purchased = 0.0
 
-        # Sum purchase costs
+        # Sum purchase costs and track units
         purchases = await self.db.execute(
             select(Purchase).where(
                 Purchase.investment_id == investment_id,
@@ -86,8 +87,9 @@ class PortfolioService:
         )
         for purchase in purchases.scalars():
             total_cost += purchase.total_cost
+            total_units_purchased += purchase.units
 
-        # Sum reinvestment costs
+        # Sum reinvestment costs and track units
         reinvestments = await self.db.execute(
             select(DividendReinvestment).where(
                 DividendReinvestment.investment_id == investment_id,
@@ -96,19 +98,18 @@ class PortfolioService:
         )
         for reinvest in reinvestments.scalars():
             total_cost += reinvest.units * reinvest.price_per_unit
+            total_units_purchased += reinvest.units
 
         # Subtract sale proceeds (on average cost basis)
-        units_held = await self.get_total_units_held(investment_id, as_of_date)
-        sales = await self.db.execute(
-            select(Sale).where(
-                Sale.investment_id == investment_id,
-                Sale.date <= as_of_date
-            )
-        )
-
-        total_units_purchased = (purchases.scalar() or 0) + (reinvestments.scalar() or 0)
         if total_units_purchased > 0:
             avg_cost = total_cost / total_units_purchased
+
+            sales = await self.db.execute(
+                select(Sale).where(
+                    Sale.investment_id == investment_id,
+                    Sale.date <= as_of_date
+                )
+            )
             for sale in sales.scalars():
                 total_cost -= sale.units * avg_cost
 
