@@ -1,14 +1,38 @@
 # 📈 Buffetiser
 
-> **Your Personal Investment Portfolio Tracker & Visualizer**
+> **Your Personal Investment Portfolio Tracker & Visualizer with Australian CGT Tax Tracking**
 
 Buffetiser is a powerful, full-stack web application designed to help you organize, track, and visualize your investment portfolio with ease. Named as a nod to Warren Buffett, this tool brings professional-grade portfolio management to your fingertips! 💼
+
+## 🆕 **Version 2.0 - Now with Australian CGT Tax Tracking!**
+
+**New in v2.0:**
+- 🇦🇺 **Australian Capital Gains Tax (CGT) Calculator** with 50% discount for long-term holdings
+- 📊 **Tax Parcel Tracking** - Track individual parcels for each purchase
+- 🎯 **Parcel Selection** - Choose which parcels to sell for tax optimization
+- 📅 **Financial Year Reports** - Automatic FY reports (July 1 - June 30)
+- 📄 **Export to PDF & CSV** - Professional tax reports ready for your accountant
+- ⚡ **FastAPI Backend** - Modern, async Python backend with SQLAlchemy 2.0
+- 📘 **TypeScript Frontend** - Type-safe React application with full type coverage
 
 ![Portfolio Dashboard](https://github.com/user-attachments/assets/c747eb11-02e9-44ca-91fa-0dcdfa8b2320)
 
 ---
 
 ## 🌟 Features
+
+### 🇦🇺 **Australian CGT Tax Tracking** (NEW in v2.0)
+- **Tax Parcel System**: Each purchase creates an individual tax parcel with acquisition date and cost base
+- **Parcel Selection**: Choose which specific parcels to sell for maximum tax efficiency
+- **FIFO Support**: Automatic first-in-first-out allocation if you prefer simplicity
+- **50% CGT Discount**: Automatic calculation for assets held 12+ months
+- **Financial Year Reports**: Complete FY reports from July 1 to June 30
+- **Sortable Tax Events Table**: View all CGT events with sorting by date, gain, holding period, etc.
+- **Tax Summary Dashboard**: See total gains, discounts applied, and net assessable gain
+- **Export to PDF**: Professional formatted tax report ready for your accountant
+- **Export to CSV**: Import into Excel or your tax software
+- **Holding Period Tracking**: Visual indicators for short-term vs long-term holdings
+- **Optimization Recommendations**: Auto-select features to minimize tax liability
 
 ### 📊 **Investment Tracking**
 - **Multi-Asset Support**: Track both shares/stocks and cryptocurrencies in one unified platform
@@ -47,38 +71,53 @@ Buffetiser is a powerful, full-stack web application designed to help you organi
 
 ## 🛠️ Technology Stack
 
-### **Backend**
+### **Version 2.0 (Current - With Tax Features)**
+
+#### **Backend (FastAPI)**
+- ⚡ **FastAPI** - Modern, async Python web framework
+- 🗄️ **SQLAlchemy 2.0** - Async ORM with type hints
+- 🔄 **Alembic** - Database migrations
+- 📋 **Pydantic V2** - Data validation and serialization
+- 🐘 **PostgreSQL 17** - Database
+- 🔴 **Redis 7** - Caching with FastAPI-Cache2
+- 🇦🇺 **Australian CGT Calculator** - Custom tax calculation service
+- 📄 **ReportLab** - PDF generation
+- 📊 **Pandas** - CSV export and data processing
+- 🌐 **HTTPX** - Async HTTP client
+- 📅 **APScheduler** - Task scheduling
+- 🐳 **Docker** - Containerization
+
+#### **Frontend (TypeScript)**
+- ⚛️ **React 18** - Modern React with hooks
+- 📘 **TypeScript 5** - Full type safety
+- 🎯 **TanStack Table** - Sortable tables for tax reports
+- 🎨 **Bootstrap 5** & **React Bootstrap** - UI components
+- 📊 **Recharts** - Data visualization
+- 🔄 **React Router 6** - Navigation
+- 🌐 **Axios** - Typed API communication
+- 💾 **file-saver** - File downloads (CSV/PDF)
+- 📅 **date-fns** - Date handling
+- 🐳 **Docker** - Containerization
+
+### **Version 1.0 (Legacy - Django)**
+
+#### **Backend (Django)**
 - 🐍 **Python** with **Django** framework
-- 🔥 **Django REST Framework** (DRF) for RESTful APIs
-- 🔐 **Django REST Framework Simple JWT** for authentication
-- 🐘 **PostgreSQL 17** database
-- 🔴 **Redis 7** for caching
+- 🔥 **Django REST Framework** (DRF)
+- 🔐 **Django REST Framework Simple JWT**
+- 🐘 **PostgreSQL 17**
+- 🔴 **Redis 7**
 - 🌐 **NGINX** as reverse proxy
-- 🐳 **Docker & Docker Compose** for containerization
-- 📦 Additional libraries:
-  - `django-cors-headers` - CORS handling
-  - `dj-database-url` - Database configuration
-  - `requests` & `aiohttp` - API requests
-  - `beautifulsoup4` - Web scraping
-  - `gunicorn` - Production WSGI server
-  - `schedule` - Task scheduling
-  - `pytz` - Timezone support
+- 🐳 **Docker & Docker Compose**
 
-### **Frontend**
-- ⚛️ **React 18** with modern hooks
-- 🎨 **Bootstrap 5** & **React Bootstrap** for UI components
-- 📊 **Recharts** for data visualization
-- 🔄 **React Router DOM** for navigation
-- 📅 **React DatePicker** for date inputs
-- 🌐 **Axios** for API communication
-- 🧪 **Jest** & **React Testing Library** for testing
+#### **Frontend (JavaScript)**
+- ⚛️ **React 18**
+- 🎨 **Bootstrap 5**
+- 📊 **Recharts**
+- 🔄 **React Router DOM**
+- 🌐 **Axios**
 
-### **DevOps & Infrastructure**
-- 🐳 **Docker** multi-container setup
-- 🔄 **Docker Compose** for orchestration
-- 🌐 **NGINX Alpine** for lightweight web serving
-- 📦 **Node 23 Slim** for frontend builds
-- 🔧 Custom wait-for-it script for service dependencies
+**Note**: The Django/JS version is in `buffetiser/backend` and `buffetiser/frontend`. The new FastAPI/TS version is in `buffetiser/backend_fastapi` and `buffetiser/frontend_ts`.
 
 ---
 
@@ -94,31 +133,50 @@ Before you begin, ensure you have the following installed:
 
 ## 🚀 Quick Start
 
-### 1️⃣ Clone the Repository
+### **Version 2.0 (FastAPI + TypeScript with Tax Features)** ⭐ RECOMMENDED
+
+#### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/yourusername/buffetiser-claude.git
+git clone https://github.com/SiriXAU/buffetiser-claude.git
 cd buffetiser-claude/buffetiser
 ```
 
-### 2️⃣ Environment Configuration (Optional)
-Create a `.env` file in the `buffetiser` directory to customize settings:
+#### 2️⃣ Start the Application
 ```bash
-# Database Configuration
-POSTGRES_DB=BUFFETISER_DB
-POSTGRES_USER=buffetiser
-POSTGRES_PASSWORD=password
-POSTGRES_HOST=db
-POSTGRES_PORT=5433
-
-# Django Configuration
-DJANGO_DEBUG=False
-SECRET_KEY=your-secret-key-here
-
-# Redis Configuration
-REDIS_URL=redis://redis:6379
+docker-compose -f docker-compose-new.yaml up --build
 ```
 
-### 3️⃣ Build and Start the Application
+#### 3️⃣ Access the Application
+- **Frontend**: http://localhost:3000
+- **API Documentation**: http://localhost:8000/api/v1/docs (Interactive!)
+- **Tax Report**: http://localhost:3000/tax-report
+- **PostgreSQL**: localhost:5432
+- **Redis**: localhost:6379
+
+#### 4️⃣ Create Initial Migration
+```bash
+docker exec -it buffetiser_backend_fastapi alembic upgrade head
+```
+
+#### 5️⃣ Try the Tax Features!
+1. Visit http://localhost:8000/api/v1/docs
+2. Create an investment
+3. Record purchases (creates tax parcels automatically)
+4. Record a sale (with parcel selection!)
+5. View your tax report at http://localhost:3000/tax-report
+6. Export to PDF or CSV
+
+---
+
+### **Version 1.0 (Django + JavaScript - Legacy)**
+
+#### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/SiriXAU/buffetiser-claude.git
+cd buffetiser-claude/buffetiser
+```
+
+#### 2️⃣ Build and Start
 ```bash
 docker-compose up --build
 ```
