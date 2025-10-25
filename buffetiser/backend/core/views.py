@@ -140,22 +140,45 @@ class RestoreDBView(APIView):
     """ Allows the user to restore the database from a backup file contained in the fixtures directory."""
 
     def post(self, _, path):
+        import os
+        import re
+
         print("*" * 60)
         print(f"...{path}...")
         print("*" * 60)
-        # Generate backup file name with timestamp
+
+        # Sanitize path to prevent command injection and directory traversal
+        # Only allow alphanumeric, underscore, hyphen, and .json extension
+        if not re.match(r'^[a-zA-Z0-9_\-]+\.json$', path):
+            print(f"Invalid path format: {path}")
+            return JsonResponse({"error": "Invalid file path"}, status=400)
+
+        # Ensure the path doesn't contain directory traversal attempts
+        if '..' in path or '/' in path or '\\' in path:
+            print(f"Directory traversal attempt detected: {path}")
+            return JsonResponse({"error": "Invalid file path"}, status=400)
+
         BACKUP_DIR = "fixtures/"
+        full_path = os.path.join(BACKUP_DIR, path)
 
-        # Command to dump the data
-        dump_cmd = f"python manage.py loaddata \
-                     fixtures/{path}"
+        # Verify the file exists before attempting to load
+        if not os.path.isfile(full_path):
+            print(f"File not found: {full_path}")
+            return JsonResponse({"error": "File not found"}, status=404)
+
+        # Use list form of subprocess.run to prevent shell injection
         try:
-            subprocess.run(dump_cmd, shell=True, check=True)
-            print(f"Backup successful: {path}")
+            subprocess.run(
+                ["python", "manage.py", "loaddata", full_path],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            print(f"Restore successful: {path}")
+            return JsonResponse({"message": "Restore successful"}, status=200)
         except subprocess.CalledProcessError as e:
-            print(f"Error during backup: {e}")
-
-        return JsonResponse({}, status=200)
+            print(f"Error during restore: {e}")
+            return JsonResponse({"error": f"Restore failed: {e.stderr}"}, status=500)
 
 
 class CronTimeView(APIView):
@@ -294,7 +317,6 @@ class NewInvestmentView(APIView):
                     currency = new_investment_data["currency"],
                     exchange = new_investment_data["exchange"],
                     platform = new_investment_data["platform"],
-                    visible = True,
                 )
                 if created:
                     purchase.save()

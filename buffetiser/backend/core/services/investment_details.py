@@ -1,7 +1,7 @@
 import datetime
-from functools import cache
 import logging
 
+from django.core.cache import cache
 from django.db.models import Sum
 
 from core.models import (DailyChange, DividendReinvestment, History,
@@ -28,9 +28,11 @@ def get_all_details_for_investment(investment):
     """
     date = datetime.datetime.now()
     live_price = investment.live_price
-    if (History.objects.filter(investment=investment)
-        and len(History.objects.filter(investment=investment).all()) > 0):
-        yesterday_price = (History.objects.filter(investment=investment).order_by("-id")[1].close)
+
+    # Guard against IndexError when there are fewer than 2 history entries
+    history_entries = list(History.objects.filter(investment=investment).order_by("-id"))
+    if len(history_entries) >= 2:
+        yesterday_price = history_entries[1].close
     else:
         yesterday_price = live_price
 
@@ -108,23 +110,26 @@ def get_sale_history(investment):
     return sales
 
 
-@cache
 def get_total_units_held_on_date(investment, date):
     """
     Get the number of units held of a particular investment on a
     certain date.
     """
+    # Use Django cache with investment.id and date as cache key
+    cache_key = f'units_held_{investment.id}_{date.strftime("%Y%m%d")}'
 
-    purchases_units = Purchase.objects.filter(investment=investment, 
-                                              date__lte=date).aggregate(total=Sum('units'))['total'] or 0
-    reinvestments_units = DividendReinvestment.objects.filter(investment=investment, 
-                                                              date__lte=date).aggregate(total=Sum('units'))['total'] or 0
-    sales_units = Sale.objects.filter(investment=investment, 
-                                      date__lte=date).aggregate(total=Sum('units'))['total'] or 0
+    def calculate_units():
+        purchases_units = Purchase.objects.filter(investment=investment,
+                                                  date__lte=date).aggregate(total=Sum('units'))['total'] or 0
+        reinvestments_units = DividendReinvestment.objects.filter(investment=investment,
+                                                                  date__lte=date).aggregate(total=Sum('units'))['total'] or 0
+        sales_units = Sale.objects.filter(investment=investment,
+                                          date__lte=date).aggregate(total=Sum('units'))['total'] or 0
 
-    units_held = purchases_units + reinvestments_units - sales_units
+        units_held = purchases_units + reinvestments_units - sales_units
+        return units_held
 
-    return units_held
+    return cache.get_or_set(cache_key, calculate_units, timeout=300)
 
 
 def get_average_cost_on_date(investment, date):
@@ -139,30 +144,40 @@ def get_average_cost_on_date(investment, date):
     return total_cost_on_date
 
 
-@cache
 def get_total_cost_on_date(investment, date):
     """
     The formula for the total cost of an Investment on a certain date as used by the ATO for shares held over 12 months is:
     Sum of all purchase costs*units, adding re-investment units and subtracting sales*average cost.
     For shares held less than 12 months, the FIFO (First In First Out) method is used.
     """
-    purchases = Purchase.objects.filter(investment=investment, date__lte=date).all()
-    purchases_cost = 0
-    purchase_units = 0
-    for purchase in purchases:
-        purchase_units += purchase.units
-        purchases_cost += purchase.price_per_unit * purchase.units
+    # Use Django cache with investment.id and date as cache key
+    cache_key = f'total_cost_{investment.id}_{date.strftime("%Y%m%d")}'
 
-    reinvestment_units = DividendReinvestment.objects.filter(investment=investment, 
-                                                             date__lte=date).aggregate(total=Sum('units'))['total'] or 0
-    sales_units = Sale.objects.filter(investment=investment, 
-                                      date__lte=date).aggregate(total=Sum('units'))['total'] or 0
-    
-    average_purchase_cost = purchases_cost / (purchase_units + reinvestment_units)
-    sales_cost = sales_units * average_purchase_cost
-    cost_of_currently_held = purchases_cost - sales_cost
+    def calculate_cost():
+        purchases = Purchase.objects.filter(investment=investment, date__lte=date).all()
+        purchases_cost = 0
+        purchase_units = 0
+        for purchase in purchases:
+            purchase_units += purchase.units
+            purchases_cost += purchase.price_per_unit * purchase.units
 
-    return cost_of_currently_held
+        reinvestment_units = DividendReinvestment.objects.filter(investment=investment,
+                                                                 date__lte=date).aggregate(total=Sum('units'))['total'] or 0
+        sales_units = Sale.objects.filter(investment=investment,
+                                          date__lte=date).aggregate(total=Sum('units'))['total'] or 0
+
+        # Prevent division by zero
+        total_units = purchase_units + reinvestment_units
+        if total_units == 0:
+            return 0
+
+        average_purchase_cost = purchases_cost / total_units
+        sales_cost = sales_units * average_purchase_cost
+        cost_of_currently_held = purchases_cost - sales_cost
+
+        return cost_of_currently_held
+
+    return cache.get_or_set(cache_key, calculate_cost, timeout=300)
 
 
 def get_total_value_on_date(investment, date):
@@ -171,7 +186,16 @@ def get_total_value_on_date(investment, date):
         The number of units held on a certain date multiplied by the price of the Investment on that date.
     """
     # Get the last history entry on or before the date
-    closest_history_object = list(History.objects.filter(investment=investment, date__lte=date))[-1]
+    history_list = list(History.objects.filter(investment=investment, date__lte=date))
+
+    # Handle empty history queryset
+    if not history_list:
+        # If no history, use current units and live price
+        units = get_total_units_held_on_date(investment, date)
+        price = investment.live_price if investment.live_price else 0
+        return units * price
+
+    closest_history_object = history_list[-1]
     closest_date = closest_history_object.date
     closest_units_to_date = get_total_units_held_on_date(investment, closest_date)
     closest_close_value_to_date = closest_history_object.close
@@ -254,6 +278,10 @@ def get_portfolio_totals():
         portfolio["total_profit"] += investment_profit
         portfolio["total_value"] += investment_value
 
-    portfolio["total_profit_percentage"] = ((portfolio["total_value"] / portfolio["total_cost"]) - 1) * 100
+    # Prevent division by zero
+    if portfolio["total_cost"] > 0:
+        portfolio["total_profit_percentage"] = ((portfolio["total_value"] / portfolio["total_cost"]) - 1) * 100
+    else:
+        portfolio["total_profit_percentage"] = 0.0
 
     return portfolio
