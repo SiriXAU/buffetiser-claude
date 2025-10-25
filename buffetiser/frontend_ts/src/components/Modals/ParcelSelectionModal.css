@@ -1,0 +1,16 @@
+.parcel-selection-modal .table {
+  font-size: 0.9rem;
+}
+
+.parcel-selection-modal .table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.parcel-selection-modal .table td {
+  vertical-align: middle;
+}
+
+.parcel-selection-modal input[type="number"] {
+  max-width: 120px;
+}
