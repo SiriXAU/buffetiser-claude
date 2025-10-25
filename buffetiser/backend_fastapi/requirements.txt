@@ -19,7 +19,7 @@ passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 
 # Caching
-redis==5.0.1
+redis==4.6.0
 fastapi-cache2[redis]==0.2.1
 
 # HTTP Client & Scraping
