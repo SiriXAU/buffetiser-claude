@@ -5,6 +5,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import { Navbar, Nav, Container } from 'react-bootstrap';
+import { DashboardPage } from './pages/DashboardPage';
 import { TaxReportPage } from './pages/TaxReportPage';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
@@ -42,7 +43,7 @@ function App() {
 
         {/* Main Content */}
         <Routes>
-          <Route path="/" element={<DashboardPlaceholder />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/tax-report" element={<TaxReportPage />} />
           <Route path="/investments" element={<InvestmentsPlaceholder />} />
         </Routes>

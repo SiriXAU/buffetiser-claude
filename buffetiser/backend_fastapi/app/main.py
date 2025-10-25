@@ -16,6 +16,7 @@ from app.api.endpoints import (
     portfolio,
     tax,
     transactions,
+    updates,
 )
 from app.config import get_settings
 from app.database import init_db
@@ -94,6 +95,11 @@ app.include_router(
     exports.router,
     prefix=f"{settings.API_V1_PREFIX}/export",
     tags=["exports"]
+)
+app.include_router(
+    updates.router,
+    prefix=f"{settings.API_V1_PREFIX}/updates",
+    tags=["updates"]
 )
 
 

@@ -1,0 +1,36 @@
+.portfolio-chart-card {
+  margin-bottom: 2rem;
+}
+
+.portfolio-chart-card .card-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+  padding: 1rem 1.25rem;
+}
+
+.portfolio-chart-card h5 {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.custom-tooltip {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-tooltip .label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.custom-tooltip .value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+  margin: 0;
+}

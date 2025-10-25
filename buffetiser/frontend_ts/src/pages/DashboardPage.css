@@ -1,0 +1,75 @@
+.dashboard-page {
+  padding: 2rem 1rem;
+}
+
+.page-header {
+  padding-bottom: 1rem;
+  border-bottom: 3px solid #667eea;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.quick-action-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.quick-action-card h5 {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #2c3e50;
+}
+
+.quick-action-card p {
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-footer {
+  padding: 1rem 0;
+  border-top: 1px solid #e9ecef;
+}
+
+.dashboard-footer a {
+  color: #667eea;
+  text-decoration: none;
+}
+
+.dashboard-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    text-align: center;
+  }
+
+  .page-header .text-end {
+    text-align: center !important;
+    margin-top: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+  }
+
+  .quick-action-card {
+    margin-bottom: 1rem;
+  }
+}
