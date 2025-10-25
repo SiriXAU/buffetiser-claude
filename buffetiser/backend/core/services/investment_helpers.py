@@ -86,6 +86,14 @@ def initiate_async_scrape(scraper_function):
 
     This is done asynchronously to improve speed.
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Try to get existing event loop, create new one only if necessary
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     loop.run_until_complete(scrape(scraper_function=scraper_function))

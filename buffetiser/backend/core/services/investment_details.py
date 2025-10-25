@@ -226,18 +226,11 @@ def get_portfolio_value_history():
     """
     Get the value of all shares for each date for the whole portfolio.
     """
-    # Get all unique history dates in order
+    # Get all unique history dates in order with select_related for efficiency
     all_histories = History.objects.all().order_by("date").select_related("investment")
     history_dates = sorted(set(history.date for history in all_histories))
     if not history_dates:
         return []
-
-    # Cache purchases and sales once
-    purchases_dict = {}
-    sales_dict = {}
-    for investment in Investment.objects.all():
-        purchases_dict.update(get_purchase_history(investment))
-        sales_dict.update(get_sale_history(investment))
 
     # Group histories by (investment, date) for fast lookup
     history_lookup = {(history.investment.symbol, history.date): history.close for history in all_histories}

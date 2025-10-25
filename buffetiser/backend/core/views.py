@@ -1,4 +1,3 @@
-import datetime
 import subprocess
 import time
 from datetime import datetime
@@ -115,25 +114,36 @@ class BackupDBView(APIView):
     """ Create a backup of the database by dumping it to a JSON file in the fixtures directory."""
 
     def post(self, _):
+        import os
+
         # Generate backup file name with timestamp
         BACKUP_DIR = "fixtures/"
         timestamp = datetime.now().strftime("%y-%m-%d")
         backup_file = f"{BACKUP_DIR}buffetiser_{timestamp}_data.json"
 
-        # Command to dump the data
-        dump_cmd = f"python manage.py dumpdata \
-                     --exclude contenttypes \
-                     --exclude auth.permission \
-                     --exclude sessions \
-                     --indent 2 > {backup_file}"
+        # Ensure backup directory exists
+        os.makedirs(BACKUP_DIR, exist_ok=True)
 
+        # Use list form of subprocess.run to prevent shell injection
         try:
-            subprocess.run(dump_cmd, shell=True, check=True)
+            with open(backup_file, 'w') as f:
+                subprocess.run(
+                    [
+                        "python", "manage.py", "dumpdata",
+                        "--exclude", "contenttypes",
+                        "--exclude", "auth.permission",
+                        "--exclude", "sessions",
+                        "--indent", "2"
+                    ],
+                    stdout=f,
+                    check=True,
+                    text=True
+                )
             print(f"Backup successful: {backup_file}")
+            return JsonResponse({"message": "Backup successful", "file": backup_file}, status=200)
         except subprocess.CalledProcessError as e:
             print(f"Error during backup: {e}")
-
-        return JsonResponse({}, status=200)
+            return JsonResponse({"error": "Backup failed"}, status=500)
 
 
 class RestoreDBView(APIView):
@@ -337,9 +347,25 @@ class PurchaseView(APIView):
 
     def post(self, request):
         purchase_data = request.data
+
+        # Validate required fields
+        required_fields = ["symbol", "units", "pricePerUnit", "fee", "date"]
+        missing_fields = [field for field in required_fields if field not in purchase_data]
+        if missing_fields:
+            return JsonResponse(
+                {"error": f"Missing required fields: {', '.join(missing_fields)}"},
+                status=400
+            )
+
         purchase_investment = Investment.objects.filter(
             symbol=purchase_data["symbol"]
         ).first()
+
+        if not purchase_investment:
+            return JsonResponse(
+                {"error": f"Investment with symbol '{purchase_data['symbol']}' not found"},
+                status=404
+            )
 
         try:
             purchase, created = Purchase.objects.get_or_create(
@@ -352,24 +378,42 @@ class PurchaseView(APIView):
             )
             if created:
                 purchase.save()
+                return JsonResponse({"message": "Purchase created successfully"}, status=201)
+            else:
+                return JsonResponse({"message": "Purchase already exists"}, status=200)
+        except ValueError as e:
+            return JsonResponse({"error": f"Invalid data format: {str(e)}"}, status=400)
         except Exception as e:
-            print("*" * 60)
-            print(e)
-            print("*" * 60)
-
-        return HttpResponse(HTTPStatus.OK)
+            print(f"Error creating purchase: {e}")
+            return JsonResponse({"error": "Failed to create purchase"}, status=500)
 
 
 class SaleView(APIView):
     """
-    Create a sal entry for an existing Investment.
+    Create a sale entry for an existing Investment.
     Reply from the front end will be:
         'symbol', 'currency', 'exchange', 'platform', 'units', 'pricePerUnit', 'fee', 'date'
     """
 
     def post(self, request):
         sale_data = request.data
+
+        # Validate required fields
+        required_fields = ["symbol", "units", "pricePerUnit", "fee", "date"]
+        missing_fields = [field for field in required_fields if field not in sale_data]
+        if missing_fields:
+            return JsonResponse(
+                {"error": f"Missing required fields: {', '.join(missing_fields)}"},
+                status=400
+            )
+
         sale_investment = Investment.objects.filter(symbol=sale_data["symbol"]).first()
+
+        if not sale_investment:
+            return JsonResponse(
+                {"error": f"Investment with symbol '{sale_data['symbol']}' not found"},
+                status=404
+            )
 
         try:
             sale, created = Sale.objects.get_or_create(
@@ -382,12 +426,14 @@ class SaleView(APIView):
             )
             if created:
                 sale.save()
+                return JsonResponse({"message": "Sale created successfully"}, status=201)
+            else:
+                return JsonResponse({"message": "Sale already exists"}, status=200)
+        except ValueError as e:
+            return JsonResponse({"error": f"Invalid data format: {str(e)}"}, status=400)
         except Exception as e:
-            print("*" * 60)
-            print(e)
-            print("*" * 60)
-
-        return HttpResponse(HTTPStatus.OK)
+            print(f"Error creating sale: {e}")
+            return JsonResponse({"error": "Failed to create sale"}, status=500)
 
 
 class ReportsView(APIView):
