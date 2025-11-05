@@ -6,6 +6,7 @@ from http import HTTPStatus
 from itertools import count
 from threading import Thread
 
+import pytz
 import schedule
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
@@ -34,7 +35,7 @@ trade_counter = count()
 
 
 @api_view(["POST"])
-def update_daily_changes():
+def update_daily_changes(request):
     """
     When hit, this endpoint updates the daily change values for ALL Investments.
     As this is just a temporary value that is updated constantly, the previous
@@ -53,7 +54,7 @@ def update_all_investments(request):
     """
     This updates ALL the data for ALL investments.
     """
-    update_daily_changes()
+    update_daily_changes(request)
     initiate_async_scrape(scraper_function_investment_and_history)
     print("Updated all investments prices")
 
@@ -174,20 +175,23 @@ class CronTimeView(APIView):
             {"cron_time": self.config.update_time}, status=200
         )
 
-    def post(self, response):
+    def post(self, request):
         """
         Sets a daily schedule to update the prices for all investments. In case the scheduled time is changed,
         the schedule is cleared and restarted with the new run time.
         """
 
-        self.config.update_time = response.data
+        self.config.update_time = request.data
         self.config.save()
 
         if self.countdown.running():
             self.countdown.terminate()
+
+        # Convert timezone string to timezone object
+        timezone = pytz.timezone(self.config.update_time_zone)
         self.countdown.setup(
             self.config.update_time,
-            self.config.update_time_zone,
+            timezone,
         )
         countdown_thread = Thread(target=self.countdown.run)
         countdown_thread.setDaemon(True)
@@ -294,7 +298,6 @@ class NewInvestmentView(APIView):
                     currency = new_investment_data["currency"],
                     exchange = new_investment_data["exchange"],
                     platform = new_investment_data["platform"],
-                    visible = True,
                 )
                 if created:
                     purchase.save()
@@ -376,14 +379,18 @@ class ReportsView(APIView):
 
         report_dict = {}
         for investment in Investment.objects.all():
-            purchases = [p.to_json() | {"type": "purchase"} for p in Purchase.objects.filter(investment=investment)]
-            sales = [s.to_json() | {"type": "sale"} for s in Sale.objects.filter(investment=investment)]
-            dividends = [d.to_json() | {"type": "dividend"} for d in DividendPayment.objects.filter(investment=investment)]
-            reinvestments = [r.to_json() | {"type": "reinvestment"} for r in DividendReinvestment.objects.filter(investment=investment)]
+            # Get transactions with their actual date objects for proper sorting
+            purchases = [(p.date, p.to_json() | {"type": "purchase"}) for p in Purchase.objects.filter(investment=investment)]
+            sales = [(s.date, s.to_json() | {"type": "sale"}) for s in Sale.objects.filter(investment=investment)]
+            dividends = [(d.date, d.to_json() | {"type": "dividend"}) for d in DividendPayment.objects.filter(investment=investment)]
+            reinvestments = [(r.date, r.to_json() | {"type": "reinvestment"}) for r in DividendReinvestment.objects.filter(investment=investment)]
 
-            # Combine all and sort by date
-            all_transactions = purchases + sales + dividends + reinvestments
-            all_transactions.sort(key=lambda x: x.get("date") or "")
+            # Combine all and sort by actual date objects
+            all_transactions_with_dates = purchases + sales + dividends + reinvestments
+            all_transactions_with_dates.sort(key=lambda x: x[0])
+
+            # Extract just the transaction data (without the date object used for sorting)
+            all_transactions = [transaction for _, transaction in all_transactions_with_dates]
 
             report_dict[investment.key] = {
                 "key": investment.key,
@@ -454,11 +461,12 @@ class DividendReinvestmentView(APIView):
         reinvestment_data = request.data
         reinvestment_investment = Investment.objects.filter(symbol=reinvestment_data["symbol"]).first()
 
-        reinvestment = DividendReinvestment.objects.create(                    
+        reinvestment = DividendReinvestment.objects.create(
             investment=reinvestment_investment,
             units=float(reinvestment_data["units"]),
+            price_per_unit=float(reinvestment_data["pricePerUnit"]),
             date=fe_string_to_date(reinvestment_data["date"]),
         )
         reinvestment.save()
-        
+
         return HttpResponse(HTTPStatus.OK)

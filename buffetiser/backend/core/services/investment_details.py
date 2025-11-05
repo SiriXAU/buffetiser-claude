@@ -28,9 +28,9 @@ def get_all_details_for_investment(investment):
     """
     date = datetime.datetime.now()
     live_price = investment.live_price
-    if (History.objects.filter(investment=investment)
-        and len(History.objects.filter(investment=investment).all()) > 0):
-        yesterday_price = (History.objects.filter(investment=investment).order_by("-id")[1].close)
+    history_records = History.objects.filter(investment=investment).order_by("-id")
+    if history_records.exists() and history_records.count() >= 2:
+        yesterday_price = history_records[1].close
     else:
         yesterday_price = live_price
 
@@ -153,12 +153,17 @@ def get_total_cost_on_date(investment, date):
         purchase_units += purchase.units
         purchases_cost += purchase.price_per_unit * purchase.units
 
-    reinvestment_units = DividendReinvestment.objects.filter(investment=investment, 
+    reinvestment_units = DividendReinvestment.objects.filter(investment=investment,
                                                              date__lte=date).aggregate(total=Sum('units'))['total'] or 0
-    sales_units = Sale.objects.filter(investment=investment, 
+    sales_units = Sale.objects.filter(investment=investment,
                                       date__lte=date).aggregate(total=Sum('units'))['total'] or 0
-    
-    average_purchase_cost = purchases_cost / (purchase_units + reinvestment_units)
+
+    # Guard against division by zero
+    total_purchase_units = purchase_units + reinvestment_units
+    if total_purchase_units == 0:
+        return 0
+
+    average_purchase_cost = purchases_cost / total_purchase_units
     sales_cost = sales_units * average_purchase_cost
     cost_of_currently_held = purchases_cost - sales_cost
 
@@ -171,7 +176,13 @@ def get_total_value_on_date(investment, date):
         The number of units held on a certain date multiplied by the price of the Investment on that date.
     """
     # Get the last history entry on or before the date
-    closest_history_object = list(History.objects.filter(investment=investment, date__lte=date))[-1]
+    history_records = list(History.objects.filter(investment=investment, date__lte=date))
+    if not history_records:
+        # No history available, use live price
+        closest_units_to_date = get_total_units_held_on_date(investment, date)
+        return closest_units_to_date * investment.live_price
+
+    closest_history_object = history_records[-1]
     closest_date = closest_history_object.date
     closest_units_to_date = get_total_units_held_on_date(investment, closest_date)
     closest_close_value_to_date = closest_history_object.close
@@ -254,6 +265,8 @@ def get_portfolio_totals():
         portfolio["total_profit"] += investment_profit
         portfolio["total_value"] += investment_value
 
-    portfolio["total_profit_percentage"] = ((portfolio["total_value"] / portfolio["total_cost"]) - 1) * 100
+    # Guard against division by zero
+    if portfolio["total_cost"] > 0:
+        portfolio["total_profit_percentage"] = ((portfolio["total_value"] / portfolio["total_cost"]) - 1) * 100
 
     return portfolio
