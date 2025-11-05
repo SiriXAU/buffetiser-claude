@@ -27,7 +27,7 @@ services:
     container_name: buffetiser_backend
     command: >
       sh -c "
-        ./wait-for-it.sh db:5433 -- python manage.py migrate &&
+        ./wait-for-it.sh db:5432 -- python manage.py migrate &&
         python manage.py collectstatic --noinput &&
         python manage.py loaddata --exclude=auth.permission --exclude=contenttypes fixtures/buffetiser_25-06-06_data.json &&
         # python manage.py createsuperuser --username buffetiser --email dodgydesigns@gmail.com --noinput &&
